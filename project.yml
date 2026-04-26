@@ -1,0 +1,70 @@
+name: SayIt
+options:
+  bundleIdPrefix: com.sayit
+  deploymentTarget:
+    macOS: "12.0"
+
+targets:
+  SayIt:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/SayIt
+      - path: Resources/AppIcon.icns
+        buildPhase: resources
+      - path: vendor/whisper.cpp/models/ggml-base.bin
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sayit.app
+        INFOPLIST_FILE: Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Resources/SayIt.entitlements
+        SWIFT_VERSION: 5.9
+        MACOSX_DEPLOYMENT_TARGET: "12.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: "NO"
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/SayIt/SayIt-Bridging-Header.h
+        HEADER_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/vendor/whisper.cpp/include"
+          - "$(SRCROOT)/vendor/whisper.cpp/ggml/include"
+        LIBRARY_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/vendor/whisper.cpp/build-macos"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-lwhisper_all"
+          - "-lc++"
+          - "-framework"
+          - "Accelerate"
+          - "-framework"
+          - "Metal"
+          - "-framework"
+          - "MetalKit"
+          - "-framework"
+          - "Network"
+          - "-framework"
+          - "MediaPlayer"
+        CLANG_CXX_LANGUAGE_STANDARD: "gnu++17"
+    scheme:
+      environmentVariables:
+        OS_ACTIVITY_MODE: disable
+      testTargets:
+        - SayItTests
+
+  SayItTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/SayItTests
+    dependencies:
+      - target: SayIt
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sayit.tests
+        SWIFT_VERSION: 5.9
+        MACOSX_DEPLOYMENT_TARGET: "12.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "NO"
+        GENERATE_INFOPLIST_FILE: "YES"
