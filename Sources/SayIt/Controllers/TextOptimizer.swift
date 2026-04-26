@@ -72,10 +72,6 @@ final class TextOptimizer {
         switch provider {
         case .deepseek: return URL(string: "https://api.deepseek.com/chat/completions")!
         case .gemini:   return URL(string: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions")!
-        case .minimax:
-            let base = UserDefaults.standard.string(forKey: "minimaxBaseURL")
-                ?? "https://api.minimax.chat"
-            return URL(string: "\(base)/v1/chat/completions")!
         case .none:     fatalError()
         }
     }
@@ -84,7 +80,6 @@ final class TextOptimizer {
         switch provider {
         case .deepseek: return "deepseek-chat"
         case .gemini:   return "gemini-2.5-pro"
-        case .minimax:  return "MiniMax-Text-01"
         case .none:     return ""
         }
     }
@@ -115,6 +110,7 @@ final class TextOptimizer {
         if let context = context, context != .general {
             prompt += context.llmPromptSuffix
         }
+        prompt += UserRulesManager.shared.rulesPrompt
 
         let body: [String: Any] = [
             "model": model(for: provider),
@@ -157,6 +153,98 @@ final class TextOptimizer {
             completion(.success(result))
         }
         currentTask?.resume()
+    }
+
+    // MARK: - Analyze Preferences
+
+    func analyzePreferences(rawTranscription: String, desiredText: String, completion: @escaping (Result<[(rule: String, example: String)], OptimizeError>) -> Void) {
+        let provider = selectedProvider
+        let key = apiKey(for: provider)
+        guard provider != .none, !key.isEmpty else {
+            completion(.failure(.notConfigured))
+            return
+        }
+
+        let analysisPrompt = """
+        你是一个语音转写偏好分析助手。用户会提供两段文本：
+        1. ASR 原始转写文本（可能有识别错误、缺少标点等）
+        2. 用户期望的优化后文本
+
+        请对比这两段文本，推断用户在以下方面的个人偏好：
+        - 语气词处理：是否保留或去除"嗯、啊、那个"等语气词
+        - 标点风格：用户的标点使用习惯（如偏好逗号分隔还是句号断句）
+        - 列表格式：有序列表的序号风格（如 1. 2. 3. vs 一、二、三、），无序列表符号偏好
+        - 缩进与层级：列表嵌套的缩进方式和层级风格
+        - 段落风格：是否偏好紧凑段落或频繁换行
+        - 整体语气：偏口语化还是书面化
+
+        注意：不要提取术语替换、同音字修正、专有名词写法等词汇层面的规则，这些由词典功能处理。只关注格式、语气、排版等风格层面的偏好。
+
+        请以 JSON 数组格式返回规则，每条规则包含 "rule"（规则描述，用于指导后处理）和 "example"（示例说明）。
+        只返回 JSON 数组，不要其他内容。示例格式：
+        [{"rule": "使用中文数字作为有序列表序号（一、二、三）", "example": "原文: 1.要点一 2.要点二 → 期望: 一、要点一 二、要点二"}]
+
+        如果无法提取有意义的规则，返回空数组 []。
+        """
+
+        var req = URLRequest(url: endpoint(for: provider))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.timeoutInterval = 30
+
+        let userMessage = "ASR 原始转写：\n\(rawTranscription)\n\n用户期望文案：\n\(desiredText)"
+
+        let body: [String: Any] = [
+            "model": model(for: provider),
+            "messages": [
+                ["role": "system", "content": analysisPrompt],
+                ["role": "user",   "content": userMessage]
+            ],
+            "temperature": 0.3,
+            "max_tokens": 2000
+        ]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        URLSession.shared.dataTask(with: req) { data, response, error in
+            if let error = error {
+                dbg("[TextOptimizer] 偏好分析失败: \(error.localizedDescription)")
+                completion(.failure(.networkError))
+                return
+            }
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            guard (200...299).contains(statusCode) else {
+                completion(.failure(.apiError("HTTP \(statusCode)")))
+                return
+            }
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let choices = json["choices"] as? [[String: Any]],
+                  let message = choices.first?["message"] as? [String: Any],
+                  let content = message["content"] as? String else {
+                completion(.failure(.parseError))
+                return
+            }
+
+            let cleaned = content.trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: "```json", with: "")
+                .replacingOccurrences(of: "```", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard let jsonData = cleaned.data(using: .utf8),
+                  let arr = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: String]] else {
+                dbg("[TextOptimizer] 偏好规则解析失败: \(cleaned.prefix(200))")
+                completion(.failure(.parseError))
+                return
+            }
+
+            let rules = arr.compactMap { item -> (rule: String, example: String)? in
+                guard let rule = item["rule"], !rule.isEmpty else { return nil }
+                return (rule: rule, example: item["example"] ?? "")
+            }
+            dbg("[TextOptimizer] 提取到 \(rules.count) 条偏好规则")
+            completion(.success(rules))
+        }.resume()
     }
 
     // MARK: - Key Validation

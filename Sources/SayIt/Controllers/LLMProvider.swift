@@ -4,7 +4,6 @@ enum LLMProvider: String, CaseIterable, Identifiable {
     case none     = "none"
     case deepseek = "deepseek"
     case gemini   = "gemini"
-    case minimax  = "minimax"
 
     var id: String { rawValue }
 
@@ -13,7 +12,6 @@ enum LLMProvider: String, CaseIterable, Identifiable {
         case .none:     return "不使用"
         case .deepseek: return "DeepSeek"
         case .gemini:   return "Gemini"
-        case .minimax:  return "MiniMax"
         }
     }
 
@@ -22,7 +20,6 @@ enum LLMProvider: String, CaseIterable, Identifiable {
         case .none:     return ""
         case .deepseek: return "deepseekApiKey"
         case .gemini:   return "geminiApiKey"
-        case .minimax:  return "minimaxApiKey"
         }
     }
 
@@ -31,7 +28,6 @@ enum LLMProvider: String, CaseIterable, Identifiable {
         case .none:     return ""
         case .deepseek: return "sk-..."
         case .gemini:   return "AIza..."
-        case .minimax:  return "eyJ..."
         }
     }
 }

@@ -312,6 +312,74 @@ final class OpenAIWhisperTranscriber {
         return int16Data
     }
 
+    // MARK: - Transcribe from file URL
+
+    /// 从 WAV 文件读取并转写（设置页校准用）
+    func transcribeBuffer(audioURL: URL, language: String, completion: @escaping (String?) -> Void) {
+        guard !apiKey.isEmpty else {
+            dbg("[OpenAIWhisper] API Key 为空")
+            completion(nil)
+            return
+        }
+
+        guard let audioData = try? Data(contentsOf: audioURL) else {
+            dbg("[OpenAIWhisper] 无法读取音频文件: \(audioURL.lastPathComponent)")
+            completion(nil)
+            return
+        }
+
+        let baseURL = UserDefaults.standard.string(forKey: "openaiWhisperBaseURL")?.trimmingCharacters(in: CharacterSet(charactersIn: "/")) ?? "https://api.openai.com"
+        let url = URL(string: "\(baseURL)/v1/audio/transcriptions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        let modelName = UserDefaults.standard.string(forKey: "openaiWhisperModel")?.trimmingCharacters(in: .whitespaces) ?? "whisper-1"
+
+        var body = Data()
+        func field(_ name: String, _ value: String) {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(value)\r\n".data(using: .utf8)!)
+        }
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
+        body.append(audioData)
+        body.append("\r\n".data(using: .utf8)!)
+        field("model", modelName)
+        field("response_format", "text")
+        if language != "auto" {
+            field("language", language)
+        }
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        request.httpBody = body
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                dbg("[OpenAIWhisper] 文件转写失败: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            guard let data = data else { completion(nil); return }
+            guard statusCode == 200 else {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                dbg("[OpenAIWhisper] 文件转写 HTTP \(statusCode): \(String(body.prefix(300)))")
+                completion(nil)
+                return
+            }
+            let result = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            dbg("[OpenAIWhisper] 文件转写完成: \(result?.prefix(100) ?? "")")
+            completion(result?.isEmpty == true ? nil : result)
+        }.resume()
+    }
+
     // MARK: - Key Validation
 
     static func validateKey(key: String, completion: @escaping (Bool, String?) -> Void) {

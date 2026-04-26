@@ -36,6 +36,7 @@
 		C80C8E08C8B866CC89CC2398 /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3B6006219FF73F69994524 /* SoundManager.swift */; };
 		D2E9531F192114A4E9C10C56 /* HistoryManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1824ED681C1F180464BADAB4 /* HistoryManagerTests.swift */; };
 		D304826782ED6EC8D97E5938 /* whisper_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A6850D459B00E43E2C90F44 /* whisper_wrapper.cpp */; };
+		D83B36326A2225888EFCE4EC /* UserRulesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D59129F13A54EE15CA75F757 /* UserRulesManager.swift */; };
 		E0EF5B4333A135CFEFE68E0F /* DeepgramTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8F97247B37017BA5B8BE54 /* DeepgramTranscriber.swift */; };
 		E175963DBEA807567610BE4D /* ContextProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C6C5F47CF02B5AB351A13F /* ContextProviderTests.swift */; };
 		E54F55277B6EFCB279D536C6 /* LLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 356EC7520884AE980B0E5413 /* LLMProvider.swift */; };
@@ -88,6 +89,7 @@
 		BE8F97247B37017BA5B8BE54 /* DeepgramTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepgramTranscriber.swift; sourceTree = "<group>"; };
 		D12647EB736D3C35C4C340A6 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		D4BBD97D683BA083219C5399 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		D59129F13A54EE15CA75F757 /* UserRulesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserRulesManager.swift; sourceTree = "<group>"; };
 		DCE344160257C95887395C6C /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		F7535517DE51AB748A4D8F2E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F7B1B561CC4D63537AD195B6 /* TextOptimizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextOptimizer.swift; sourceTree = "<group>"; };
@@ -164,6 +166,7 @@
 				F7B1B561CC4D63537AD195B6 /* TextOptimizer.swift */,
 				6C949B3DF20F8C0E38BD07DB /* TranscriptionService.swift */,
 				00940EDBDD93A4F4506B0FC1 /* UserDictionary.swift */,
+				D59129F13A54EE15CA75F757 /* UserRulesManager.swift */,
 				33CD513ED7B28BF0C3ACBA33 /* VoiceCommandProcessor.swift */,
 				F8631036C6271976A469B3CE /* WhisperTranscriber.swift */,
 				85507869F645C92CB440AF0F /* WhisperBridge */,
@@ -332,6 +335,7 @@
 				9095FD47930205BE84D967E1 /* TextOptimizer.swift in Sources */,
 				6001262B1FB9FB0DC883381D /* TranscriptionService.swift in Sources */,
 				4A2A8B2B6BA6CF08785B5995 /* UserDictionary.swift in Sources */,
+				D83B36326A2225888EFCE4EC /* UserRulesManager.swift in Sources */,
 				E8B4687450F5159BDECFB235 /* VoiceCommandProcessor.swift in Sources */,
 				A0769287FC20E2876AAA79BE /* WhisperTranscriber.swift in Sources */,
 				1E6009028961CE678839748C /* main.swift in Sources */,

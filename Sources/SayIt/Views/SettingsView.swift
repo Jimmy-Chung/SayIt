@@ -6,6 +6,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case transcription
     case ai
+    case preferences
     case dictionary
     case snippets
 
@@ -16,6 +17,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         case .general:       return "通用"
         case .transcription: return "转写引擎"
         case .ai:            return "AI 优化"
+        case .preferences:   return "用户偏好"
         case .dictionary:    return "词典"
         case .snippets:      return "快捷片段"
         }
@@ -26,8 +28,9 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         case .general:       return "gearshape.fill"
         case .transcription: return "waveform"
         case .ai:            return "sparkles"
+        case .preferences:   return "person.text.rectangle"
         case .dictionary:    return "book.fill"
-        case .snippets:      return "text.snippet"
+        case .snippets:      return "scissors"
         }
     }
 
@@ -36,6 +39,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
         case .general:       return [Color(red: 1, green: 159/255, blue: 10/255), Color(red: 1, green: 122/255, blue: 0)]
         case .transcription: return [Color(red: 74/255, green: 154/255, blue: 1), Color(red: 36/255, green: 118/255, blue: 238/255)]
         case .ai:            return [Color(red: 191/255, green: 90/255, blue: 242/255), Color(red: 138/255, green: 63/255, blue: 199/255)]
+        case .preferences:   return [Color(red: 255/255, green: 149/255, blue: 0), Color(red: 255/255, green: 94/255, blue: 58/255)]
         case .dictionary:    return [Color(red: 52/255, green: 208/255, blue: 88/255), Color(red: 31/255, green: 168/255, blue: 58/255)]
         case .snippets:      return [Color(red: 1, green: 94/255, blue: 94/255), Color(red: 224/255, green: 45/255, blue: 45/255)]
         }
@@ -56,8 +60,6 @@ struct SettingsView: View {
     @AppStorage("selectedLLMProvider") private var selectedProviderRaw: String = LLMProvider.none.rawValue
     @AppStorage("deepseekApiKey") private var deepseekKey: String = ""
     @AppStorage("geminiApiKey")   private var geminiKey: String = ""
-    @AppStorage("minimaxApiKey")  private var minimaxKey: String = ""
-    @AppStorage("minimaxBaseURL") private var minimaxBaseURL: String = "https://api.minimax.chat"
 
     @AppStorage("triggerKey") private var triggerKey: String = "fn"
 
@@ -82,6 +84,19 @@ struct SettingsView: View {
     @State private var newSnippetTrigger = ""
     @State private var newSnippetExpansion = ""
 
+    // Preferences calibration state
+    @State private var sampleRecorder: AudioRecorder? = nil
+    @State private var isRecordingSample = false
+    @State private var recordingRemaining = 60
+    @State private var sampleAudioLevel: Float = 0
+    @State private var sampleFileURL: URL?
+    @State private var rawTranscription = ""
+    @State private var desiredText = ""
+    @State private var isTranscribing = false
+    @State private var isAnalyzing = false
+    @State private var userRules: [UserRule] = UserRulesManager.shared.allRules
+    @State private var analysisMessage: String?
+
     private var isLlmEnabled: Binding<Bool> {
         Binding(
             get: { selectedProviderRaw != LLMProvider.none.rawValue },
@@ -99,7 +114,6 @@ struct SettingsView: View {
         switch selectedProvider {
         case .deepseek: return $deepseekKey
         case .gemini:   return $geminiKey
-        case .minimax:  return $minimaxKey
         case .none:     return .constant("")
         }
     }
@@ -161,6 +175,11 @@ struct SettingsView: View {
                 sidebarItem(section)
             }
             Spacer()
+            Text("SayIt v0.2.0")
+                .font(.system(size: 10))
+                .foregroundColor(Color.white.opacity(0.25))
+                .padding(.leading, 12)
+                .padding(.bottom, 6)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 12)
@@ -239,14 +258,10 @@ struct SettingsView: View {
                 case .general:       generalPanel
                 case .transcription: transcriptionPanel
                 case .ai:            aiPanel
+                case .preferences:   preferencesPanel
                 case .dictionary:    dictionaryPanel
                 case .snippets:      snippetsPanel
                 }
-
-                Text("SayIt v0.2.0 (build \(Int(Date().timeIntervalSince1970)))")
-                    .font(.system(size: 11))
-                    .foregroundColor(Color.white.opacity(0.30))
-                    .padding(.top, 18)
 
             }
             .padding(.horizontal, 24)
@@ -509,18 +524,6 @@ struct SettingsView: View {
                     }
                 }
 
-                if selectedProvider == .minimax {
-                    sectionCard(label: "MiniMax Base URL") {
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelText("国内版: https://api.minimax.chat")
-                            labelText("国际版: https://api.minimaxi.chat")
-                            GlassTextField(text: $minimaxBaseURL, placeholder: "https://api.minimax.chat")
-                                .onChange(of: minimaxBaseURL) { _ in llmValidationStatus = .idle }
-                        }
-                        .padding(14)
-                    }
-                }
-
                 sectionCard(label: "\(selectedProvider.displayName) API Key") {
                     apiKeyField(
                         key: currentLlmKey,
@@ -656,6 +659,354 @@ struct SettingsView: View {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .fill(Color.white.opacity(0.08))
             )
+    }
+
+    // MARK: - Preferences Panel
+
+    private var preferencesPanel: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            if selectedProvider == .none {
+                sectionCard(label: "语音样本校准") {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color.white.opacity(0.4))
+                        Text("请先在「AI 优化」中开启并配置大模型，才能使用用户偏好校准功能")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color.white.opacity(0.5))
+                    }
+                    .padding(14)
+                }
+            } else {
+            sectionCard(label: "语音样本校准") {
+                VStack(alignment: .leading, spacing: 14) {
+                    // Recording area
+                    HStack(spacing: 12) {
+                        if isRecordingSample {
+                            Circle()
+                                .fill(Color.red.opacity(0.6 + 0.4 * Double(sampleAudioLevel)))
+                                .frame(width: 12, height: 12)
+                            Text("录制中 \(recordingRemaining)s")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                            Spacer()
+                            GlassButton(title: "停止", action: stopSampleRecording)
+                        } else if sampleFileURL != nil {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(Color(red: 52/255, green: 208/255, blue: 88/255))
+                                .font(.system(size: 14))
+                            Text("已录制")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color.white.opacity(0.7))
+                            Spacer()
+                            GlassButton(title: "重新录制", action: resetCalibration)
+                        } else {
+                            Image(systemName: "mic.fill")
+                                .foregroundColor(Color.white.opacity(0.5))
+                                .font(.system(size: 14))
+                            Text("录制约 1 分钟语音样本")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color.white.opacity(0.7))
+                            Spacer()
+                            GlassPrimaryButton(title: "开始录制", action: startSampleRecording)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+
+                    if isRecordingSample {
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .fill(Color.white.opacity(0.08))
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .fill(Color(red: 255/255, green: 149/255, blue: 0).opacity(0.5))
+                                    .frame(width: geo.size.width * CGFloat(1.0 - Double(recordingRemaining) / 60.0))
+                            }
+                        }
+                        .frame(height: 6)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 8)
+                    }
+
+                    // Raw transcription
+                    if let _ = sampleFileURL {
+                        rowDivider()
+                        VStack(alignment: .leading, spacing: 6) {
+                            labelText("ASR 原始转写")
+                            if isTranscribing {
+                                HStack(spacing: 6) {
+                                    ProgressView()
+                                        .scaleEffect(0.7)
+                                    Text("正在转写…")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(Color.white.opacity(0.5))
+                                }
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 12)
+                            } else {
+                                ZStack(alignment: .bottomTrailing) {
+                                    TextEditor(text: .constant(rawTranscription))
+                                        .font(.system(size: 12))
+                                        .foregroundColor(Color.white.opacity(0.7))
+                                        .background(Color.clear)
+                                        .frame(minHeight: 60, maxHeight: 120)
+                                        .padding(8)
+                                        .padding(.trailing, 32)
+                                        .padding(.bottom, 28)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                                .fill(Color.black.opacity(0.25))
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                                .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.5)
+                                        )
+
+                                    IconButton(systemName: "doc.on.doc") {
+                                        let pasteboard = NSPasteboard.general
+                                        pasteboard.clearContents()
+                                        pasteboard.setString(rawTranscription, forType: .string)
+                                    }
+                                    .padding(.trailing, 6)
+                                    .padding(.bottom, 6)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 14)
+
+                        // Desired text input
+                        VStack(alignment: .leading, spacing: 6) {
+                            labelText("你期望的优化后文案")
+                            TextEditor(text: $desiredText)
+                                .font(.system(size: 12))
+                                .foregroundColor(.white)
+                                .background(Color.clear)
+                                .frame(minHeight: 80, maxHeight: 160)
+                                .padding(8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                        .fill(Color.black.opacity(0.25))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                        .strokeBorder(
+                                            desiredText.isEmpty ? Color.white.opacity(0.10) : Color(red: 0, green: 122/255, blue: 1).opacity(0.4),
+                                            lineWidth: 0.5
+                                        )
+                                )
+                        }
+                        .padding(.horizontal, 14)
+
+                        // Analyze button
+                        HStack {
+                            Spacer()
+                            if let msg = analysisMessage {
+                                Text(msg)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color.white.opacity(0.5))
+                            }
+                            GlassPrimaryButton(
+                                title: isAnalyzing ? "分析中…" : "确认",
+                                enabled: !rawTranscription.isEmpty && !desiredText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isAnalyzing,
+                                action: analyzePreferences
+                            )
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 8)
+                    }
+                }
+            }
+
+            Text("录制一段语音，系统自动转写后，你输入期望的文案。LLM 会对比两者推断你的语言偏好，应用到后续所有转写优化中。")
+                .font(.system(size: 11))
+                .foregroundColor(Color.white.opacity(0.4))
+                .padding(.horizontal, 4)
+
+            // Existing rules
+            sectionCard(label: "已有偏好规则") {
+                ForEach(Array(zip(userRules.indices, userRules)), id: \.1.id) { index, rule in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "rule")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(red: 255/255, green: 149/255, blue: 0))
+                            .frame(width: 16, alignment: .center)
+                            .padding(.top, 2)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(rule.rule)
+                                .font(.system(size: 12))
+                                .foregroundColor(Color.white.opacity(0.85))
+                                .fixedSize(horizontal: false, vertical: true)
+                            if !rule.example.isEmpty {
+                                Text(rule.example)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color.white.opacity(0.45))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        Spacer()
+                        DeleteIconButton {
+                            UserRulesManager.shared.removeRule(id: rule.id)
+                            userRules = UserRulesManager.shared.allRules
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    if index < userRules.count - 1 { rowDivider() }
+                }
+
+                if userRules.isEmpty {
+                    Text("暂无规则，通过上方校准自动生成")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color.white.opacity(0.45))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(14)
+                }
+
+                if !userRules.isEmpty {
+                    rowDivider()
+                    HStack {
+                        Spacer()
+                        GlassButton(title: "恢复默认", action: {
+                            UserRulesManager.shared.removeAllRules()
+                            userRules = UserRulesManager.shared.allRules
+                        })
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                }
+            }
+
+            Text("用户偏好规则优先级高于系统默认规则。恢复默认后将只使用系统内置的优化规则。")
+                .font(.system(size: 11))
+                .foregroundColor(Color.white.opacity(0.4))
+                .padding(.horizontal, 4)
+            } // else (AI enabled)
+        }
+    }
+
+    // MARK: - Preferences Actions
+
+    private func startSampleRecording() {
+        let recorder = AudioRecorder()
+        sampleRecorder = recorder
+        recorder.onAudioLevel = { level in
+            DispatchQueue.main.async {
+                sampleAudioLevel = level
+            }
+        }
+        recorder.startRecording()
+        isRecordingSample = true
+        recordingRemaining = 60
+        rawTranscription = ""
+        desiredText = ""
+        analysisMessage = nil
+
+        // Countdown timer
+        let startTime = Date()
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
+            let elapsed = Date().timeIntervalSince(startTime)
+            let remaining = max(0, 60 - Int(elapsed))
+            recordingRemaining = remaining
+            if remaining <= 0 || !isRecordingSample {
+                timer.invalidate()
+                if isRecordingSample {
+                    stopSampleRecording()
+                }
+            }
+        }
+    }
+
+    private func stopSampleRecording() {
+        isRecordingSample = false
+        sampleRecorder?.onAudioLevel = nil
+        sampleRecorder?.stopRecording { url in
+            DispatchQueue.main.async {
+                guard let url = url else { return }
+                sampleFileURL = url
+                transcribeSample(url)
+            }
+        }
+    }
+
+    private func transcribeSample(_ url: URL) {
+        isTranscribing = true
+        let language = SpeechLanguage.current.whisperCode
+
+        switch sttEngine {
+        case "deepgram":
+            guard !deepgramKey.isEmpty else {
+                isTranscribing = false
+                rawTranscription = "（请先配置 Deepgram API Key）"
+                return
+            }
+            DeepgramTranscriber.shared.transcribe(audioURL: url, language: SpeechLanguage.current.deepgramCode) { text in
+                DispatchQueue.main.async {
+                    isTranscribing = false
+                    rawTranscription = text ?? "（转写失败）"
+                }
+            }
+        case "openai_whisper":
+            guard !openaiWhisperKey.isEmpty else {
+                isTranscribing = false
+                rawTranscription = "（请先配置 OpenAI Whisper API Key）"
+                return
+            }
+            OpenAIWhisperTranscriber.shared.transcribeBuffer(audioURL: url, language: language) { text in
+                DispatchQueue.main.async {
+                    isTranscribing = false
+                    rawTranscription = text ?? "（转写失败）"
+                }
+            }
+        default:
+            WhisperTranscriber.shared.transcribe(audioURL: url, language: language) { text in
+                DispatchQueue.main.async {
+                    isTranscribing = false
+                    rawTranscription = text ?? "（转写失败）"
+                }
+            }
+        }
+    }
+
+    private func analyzePreferences() {
+        isAnalyzing = true
+        analysisMessage = nil
+        let raw = rawTranscription
+        let desired = desiredText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        TextOptimizer.shared.analyzePreferences(rawTranscription: raw, desiredText: desired) { result in
+            DispatchQueue.main.async {
+                isAnalyzing = false
+                switch result {
+                case .success(let rules):
+                    if rules.isEmpty {
+                        analysisMessage = "未能提取到有意义的规则"
+                    } else {
+                        UserRulesManager.shared.addRules(rules)
+                        userRules = UserRulesManager.shared.allRules
+                        analysisMessage = "已提取 \(rules.count) 条规则"
+                    }
+                case .failure(let error):
+                    switch error {
+                    case .notConfigured:
+                        analysisMessage = "请先配置 LLM 提供商"
+                    case .networkError:
+                        analysisMessage = "网络错误，请重试"
+                    case .apiError(let msg):
+                        analysisMessage = "API 错误: \(msg)"
+                    case .parseError:
+                        analysisMessage = "LLM 返回格式异常，请重试"
+                    }
+                }
+            }
+        }
+    }
+
+    private func resetCalibration() {
+        sampleFileURL = nil
+        rawTranscription = ""
+        desiredText = ""
+        analysisMessage = nil
     }
 
     // MARK: - Section card / row helpers
