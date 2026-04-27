@@ -75,6 +75,8 @@ final class OpenAIWhisperTranscriber {
         if lang != .auto_detect {
             field("language", lang.whisperCode)
         }
+        let prompt = lang.whisperPrompt + UserDictionary.shared.whisperPromptSuffix
+        field("prompt", prompt)
         // close
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
@@ -356,6 +358,9 @@ final class OpenAIWhisperTranscriber {
         if language != "auto" {
             field("language", language)
         }
+        let lang = SpeechLanguage(rawValue: language) ?? .auto_detect
+        let prompt = lang.whisperPrompt + UserDictionary.shared.whisperPromptSuffix
+        field("prompt", prompt)
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         request.httpBody = body

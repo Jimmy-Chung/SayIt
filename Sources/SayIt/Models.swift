@@ -116,6 +116,20 @@ enum SpeechLanguage: String, CaseIterable, Identifiable {
     /// whisper.cpp 使用的语言代码
     var whisperCode: String { rawValue }
 
+    /// 云端 Whisper API 的 prompt，提示模型识别俚语/成语/惯用表达
+    var whisperPrompt: String {
+        switch self {
+        case .auto_detect: return "The speech may contain idioms, slang, or colloquial expressions. Transcribe them as the correct phrases in the detected language."
+        case .chinese:     return "以下是包含成语、俗语、歇后语等口语化表达的句子，请将听到的内容还原为正确的成语或惯用表达。"
+        case .english:     return "The following sentences may contain idioms, slang, and colloquial expressions. Please transcribe them as the correct idiomatic phrases."
+        case .japanese:    return "以下は慣用句や俗語を含む文章です。正しい慣用句として書き起こしてください。"
+        case .korean:      return "다음은 관용구와 속담이 포함된 문장입니다. 올바른 관용구로 변환해 주세요."
+        case .french:      return "Les phrases suivantes peuvent contenir des expressions idiomatiques et du langage familier. Veuillez les retranscrire correctement."
+        case .german:      return "Die folgenden Sätze können Redewendungen und umgangssprachliche Ausdrücke enthalten. Bitte korrekt umschreiben."
+        case .spanish:     return "Las siguientes frases pueden contener expresiones idiomáticas y coloquiales. Por favor transcríbalas correctamente."
+        }
+    }
+
     static var current: SpeechLanguage {
         let raw = UserDefaults.standard.string(forKey: "speechLanguage") ?? "auto"
         return SpeechLanguage(rawValue: raw) ?? .auto_detect
