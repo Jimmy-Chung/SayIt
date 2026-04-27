@@ -32,6 +32,7 @@
 		A0769287FC20E2876AAA79BE /* WhisperTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8631036C6271976A469B3CE /* WhisperTranscriber.swift */; };
 		A3D22F7EABDB9F74728641EB /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8FE8D1A9FA5B2A68D49C959 /* NetworkMonitor.swift */; };
 		B6DD890924F8B359C3347FAF /* SnippetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E48B912CE8972A76021EBF /* SnippetManager.swift */; };
+		B85EA321C5D00B1E659B555E /* AXTextEditMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAF5C6ADAE94D41A6ECDF15 /* AXTextEditMonitor.swift */; };
 		B945A613856910EEBA61F0B0 /* OverlayWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B69E6C5B8E9ECE67CE45D42 /* OverlayWindowController.swift */; };
 		C80C8E08C8B866CC89CC2398 /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3B6006219FF73F69994524 /* SoundManager.swift */; };
 		D2E9531F192114A4E9C10C56 /* HistoryManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1824ED681C1F180464BADAB4 /* HistoryManagerTests.swift */; };
@@ -91,6 +92,7 @@
 		D4BBD97D683BA083219C5399 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		D59129F13A54EE15CA75F757 /* UserRulesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserRulesManager.swift; sourceTree = "<group>"; };
 		DCE344160257C95887395C6C /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		DDAF5C6ADAE94D41A6ECDF15 /* AXTextEditMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXTextEditMonitor.swift; sourceTree = "<group>"; };
 		F7535517DE51AB748A4D8F2E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F7B1B561CC4D63537AD195B6 /* TextOptimizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextOptimizer.swift; sourceTree = "<group>"; };
 		F8631036C6271976A469B3CE /* WhisperTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperTranscriber.swift; sourceTree = "<group>"; };
@@ -149,6 +151,7 @@
 			isa = PBXGroup;
 			children = (
 				039B0456F9A655D5D190EB52 /* AudioRecorder.swift */,
+				DDAF5C6ADAE94D41A6ECDF15 /* AXTextEditMonitor.swift */,
 				25D8AD7755021012B5F10C3D /* ContextProvider.swift */,
 				649819BCF754C480C65CF89F /* DeepgramStreamer.swift */,
 				BE8F97247B37017BA5B8BE54 /* DeepgramTranscriber.swift */,
@@ -312,6 +315,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B85EA321C5D00B1E659B555E /* AXTextEditMonitor.swift in Sources */,
 				96A51A7F9B56195899FD2E37 /* AppDelegate.swift in Sources */,
 				67CE34DF2E97F0BCEB083E73 /* AudioRecorder.swift in Sources */,
 				3AD7706470BF74FBCEFB73E4 /* ContextProvider.swift in Sources */,

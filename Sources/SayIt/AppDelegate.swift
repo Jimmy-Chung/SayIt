@@ -125,6 +125,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func handleRecordingStart() {
         dbg("[App] handleRecordingStart 被调用")
         SoundManager.shared.playStart()
+        AXTextEditMonitor.shared.stopMonitoring()
         statusBarController?.setRecordingState(true)
 
         overlayWindowController?.viewModel.onCancel = { [weak self] in
@@ -484,6 +485,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if trusted {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 self.simulatePaste()
+                AXTextEditMonitor.shared.startMonitoring(originalText: text)
             }
         } else {
             dbg("[App] 辅助功能未授权，跳过自动粘贴，文本已在剪贴板")

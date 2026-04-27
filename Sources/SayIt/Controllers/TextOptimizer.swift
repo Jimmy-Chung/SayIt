@@ -111,6 +111,7 @@ final class TextOptimizer {
             prompt += context.llmPromptSuffix
         }
         prompt += UserRulesManager.shared.rulesPrompt
+        prompt += UserDictionary.shared.dictionaryPrompt
 
         let body: [String: Any] = [
             "model": model(for: provider),
