@@ -62,6 +62,8 @@ API keys stored in UserDefaults, configured in Settings UI.
 2. 在特性分支上开发 `feat_list.md` 中对应版本的需求，完成后提交
 3. 测试验证通过后，合并回 `master`，打对应版本 tag（如 `v1.1.0`）
 
+**发版时必须同步更新版本号**：`Sources/SayIt/Views/SettingsView.swift` 中搜索 `SayIt v` 字符串，将其更新为对应版本。
+
 ## Key Directories
 
 - `Sources/SayIt/Controllers/` — Business logic (audio, STT, LLM, hotkeys, history, context detection)
