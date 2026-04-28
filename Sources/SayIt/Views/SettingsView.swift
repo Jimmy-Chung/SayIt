@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Section Enum
 
@@ -586,6 +587,21 @@ struct SettingsView: View {
                 .font(.system(size: 11))
                 .foregroundColor(Color.white.opacity(0.4))
                 .padding(.horizontal, 4)
+
+            HStack {
+                Spacer()
+                Button(action: exportDictionary) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 11))
+                        Text("导出词典")
+                            .font(.system(size: 12))
+                    }
+                    .foregroundColor(Color.white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 4)
         }
     }
 
@@ -1230,6 +1246,19 @@ struct SettingsView: View {
                 .font(.system(size: 11))
                 .foregroundColor(Color(red: 1, green: 122/255, blue: 110/255))
             }
+        }
+    }
+
+    // MARK: - Export
+
+    private func exportDictionary() {
+        guard let data = UserDictionary.shared.exportJSON() else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "sayit_dictionary.json"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            try? data.write(to: url)
         }
     }
 

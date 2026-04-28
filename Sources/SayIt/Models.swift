@@ -119,7 +119,7 @@ enum SpeechLanguage: String, CaseIterable, Identifiable {
     /// 云端 Whisper API 的 prompt，提示模型识别俚语/成语/惯用表达
     var whisperPrompt: String {
         switch self {
-        case .auto_detect: return "The speech may contain idioms, slang, or colloquial expressions. Transcribe them as the correct phrases in the detected language."
+        case .auto_detect: return ""
         case .chinese:     return "以下是包含成语、俗语、歇后语等口语化表达的句子，请将听到的内容还原为正确的成语或惯用表达。"
         case .english:     return "The following sentences may contain idioms, slang, and colloquial expressions. Please transcribe them as the correct idiomatic phrases."
         case .japanese:    return "以下は慣用句や俗語を含む文章です。正しい慣用句として書き起こしてください。"

@@ -12,6 +12,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var deepgramStreamer: DeepgramStreamer?
     private var pendingRawText: String?
     private var isOfflineMode = false
+    private var targetAppPID: pid_t?
 
     private var sttEngineType: String {
         UserDefaults.standard.string(forKey: "sttEngine") ?? "local"
@@ -124,6 +125,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func handleRecordingStart() {
         dbg("[App] handleRecordingStart 被调用")
+        // 记住录音开始时的前台应用，用于后续粘贴和监听
+        targetAppPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
         SoundManager.shared.playStart()
         AXTextEditMonitor.shared.stopMonitoring()
         statusBarController?.setRecordingState(true)
@@ -485,7 +488,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if trusted {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 self.simulatePaste()
-                AXTextEditMonitor.shared.startMonitoring(originalText: text)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    dbg("[App] 准备调用 startMonitoring")
+                    AXTextEditMonitor.shared.onCorrection = { [weak self] wrong, correct in
+                        self?.overlayWindowController?.showDictionaryNotification(wrong: wrong, correct: correct)
+                    }
+                    AXTextEditMonitor.shared.startMonitoring(originalText: text, targetPID: self.targetAppPID)
+                    dbg("[App] startMonitoring 已返回")
+                }
             }
         } else {
             dbg("[App] 辅助功能未授权，跳过自动粘贴，文本已在剪贴板")

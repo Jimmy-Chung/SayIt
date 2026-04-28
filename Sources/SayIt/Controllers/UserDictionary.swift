@@ -94,6 +94,14 @@ final class UserDictionary {
         return result
     }
 
+    /// 导出词典为 JSON 数据
+    func exportJSON() -> Data? {
+        loadIfNeeded()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try? encoder.encode(entries)
+    }
+
     private func loadIfNeeded() {
         guard !loaded else { return }
         loaded = true

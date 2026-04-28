@@ -8,6 +8,10 @@ class OverlayWindowController {
     private var networkWarningTimer: Timer?
     private var lastSavedOrigin: CGPoint?
 
+    // 词典通知面板
+    private var dictPanel: NSPanel?
+    private var dictTimer: Timer?
+
     // MARK: - Public API
 
     private var currentPanelSize: CGSize {
@@ -128,6 +132,78 @@ class OverlayWindowController {
         guard viewModel.networkWarningText != nil else { return }
         networkWarningTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
             self?.dismissNetworkWarning()
+        }
+    }
+
+    // MARK: - Dictionary Notification
+
+    func showDictionaryNotification(wrong: String, correct: String) {
+        dictTimer?.invalidate()
+        dictTimer = nil
+
+        let text = "\(wrong) → \(correct)  已添加到词典"
+        let label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        label.textColor = .white.withAlphaComponent(0.9)
+        label.sizeToFit()
+
+        let padding: CGFloat = 20
+        let size = CGSize(width: label.frame.width + padding * 2, height: 28)
+
+        // 位置：overlay 最后位置附近，或屏幕底部居中
+        let origin: CGPoint
+        if let saved = lastSavedOrigin {
+            origin = CGPoint(x: saved.x + (420 - size.width) / 2, y: saved.y)
+        } else {
+            let screenFrame = NSScreen.main?.visibleFrame ?? .zero
+            origin = CGPoint(x: screenFrame.midX - size.width / 2,
+                             y: screenFrame.minY + screenFrame.height * 0.12)
+        }
+
+        if dictPanel == nil {
+            let p = NSPanel(contentRect: NSRect(origin: origin, size: size),
+                            styleMask: [.borderless, .nonactivatingPanel],
+                            backing: .buffered, defer: false)
+            p.level = .floating
+            p.isOpaque = false
+            p.backgroundColor = .clear
+            p.hasShadow = false
+            p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+
+            let container = NSView(frame: NSRect(origin: .zero, size: size))
+            container.wantsLayer = true
+            container.layer?.cornerRadius = 14
+            container.layer?.backgroundColor = NSColor(red: 20/255, green: 20/255, blue: 30/255, alpha: 0.75).cgColor
+
+            let capsule = NSView(frame: container.bounds.insetBy(dx: 1, dy: 1))
+            capsule.wantsLayer = true
+            capsule.layer?.cornerRadius = 13
+            capsule.layer?.backgroundColor = NSColor(red: 20/255, green: 20/255, blue: 30/255, alpha: 0.7).cgColor
+            container.addSubview(capsule)
+
+            label.frame = NSRect(x: padding, y: (size.height - label.frame.height) / 2,
+                                 width: label.frame.width, height: label.frame.height)
+            container.addSubview(label)
+
+            p.contentView = container
+            dictPanel = p
+        } else {
+            dictPanel?.setFrame(NSRect(origin: origin, size: size), display: true)
+            // 更新文字
+            if let container = dictPanel?.contentView,
+               let oldLabel = container.subviews.compactMap({ $0 as? NSTextField }).first {
+                oldLabel.stringValue = text
+                oldLabel.sizeToFit()
+                oldLabel.frame = NSRect(x: padding, y: (size.height - oldLabel.frame.height) / 2,
+                                         width: oldLabel.frame.width, height: oldLabel.frame.height)
+            }
+        }
+
+        dictPanel?.orderFront(nil)
+        dbg("[Overlay] 显示词典通知: \(text)")
+
+        dictTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+            self?.dictPanel?.orderOut(nil)
         }
     }
 
