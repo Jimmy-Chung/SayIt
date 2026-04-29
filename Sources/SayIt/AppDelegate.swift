@@ -46,6 +46,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         requestAccessibilityPermission()
         prepareSTTEngine()
         NetworkMonitor.shared.start()
+
+        openSettings()
     }
 
     /// 为 accessory app 注册 Edit 菜单，使文本框支持 ⌘C/⌘V/⌘X/⌘A
