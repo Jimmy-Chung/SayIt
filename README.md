@@ -1,6 +1,8 @@
 # SayIt
 
-SayIt 是一款 macOS 菜单栏语音输入助手：对着麦克风说话，它会把语音转成文字，并自动粘贴到你正在输入的地方。
+<img src="docs/icon.png" width="128" alt="SayIt 图标">
+
+SayIt 是一款 macOS 菜单栏语音输入助手。它会把语音转成文字，并自动粘贴到你正在输入的地方。
 
 当前版本：**v1.2.0**。需要 macOS 12 或更高版本，支持 Apple Silicon 与 Intel。
 
@@ -80,8 +82,6 @@ xcodegen generate
 xcodebuild -project SayIt.xcodeproj -scheme SayIt -configuration Debug build
 ```
 
-分别打包 Apple Silicon 与 Intel 安装包的命令见 [`CLAUDE.md`](CLAUDE.md)。
-
 ## 技术概要
 
 一次完整输入分为四步：**触发录音 → 转写 → 后处理 → 输出**。
@@ -91,10 +91,6 @@ xcodebuild -project SayIt.xcodeproj -scheme SayIt -configuration Debug build
 3. **后处理**：依次做语音命令替换、快捷片段展开，以及可选的 LLM 润色。润色时会带上用户词典、偏好规则，以及当前前台应用的风格（邮件更正式、聊天更短、编辑器保留术语等）。
 4. **输出**：写入剪贴板，并在已授权时模拟 ⌘V 粘贴。
 
-更细的实现说明见源码中的 `TranscriptionService`、`WhisperTranscriber`、`DeepgramStreamer`、`OpenAIWhisperTranscriber` 和 `TextOptimizer`。
-
 ## 开源协议
 
 本项目采用 [MIT](LICENSE) 协议。
-
-本地语音识别基于 [whisper.cpp](https://github.com/ggml-org/whisper.cpp)（MIT），随应用打包的 Whisper 模型权重同样为 MIT。Deepgram、OpenAI、DeepSeek、Gemini 是可选的第三方云服务，使用时需遵守各服务自己的条款，本项目并不附带这些服务的源代码。

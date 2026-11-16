@@ -32,3 +32,7 @@ hooks/
 # Whisper model weights and local build products (download / build separately)
 vendor/whisper.cpp/models/*.bin
 vendor/whisper.cpp/build-macos/
+
+# Local development notes
+CLAUDE.md
+feat_list.md
