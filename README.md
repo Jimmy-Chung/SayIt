@@ -1,10 +1,14 @@
+<div align="center">
+
 # SayIt
 
-<img src="docs/icon.png" width="128" alt="SayIt 图标">
+<img src="docs/icon.png" width="160" alt="SayIt 图标">
 
 SayIt 是一款 macOS 菜单栏语音输入助手。它会把语音转成文字，并自动粘贴到你正在输入的地方。
 
 当前版本：**v1.2.0**。需要 macOS 12 或更高版本，支持 Apple Silicon 与 Intel。
+
+</div>
 
 ## 安装
 
