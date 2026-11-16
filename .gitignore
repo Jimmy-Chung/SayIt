@@ -19,3 +19,16 @@ xcuserdata/
 
 # Vendor (uncomment if vendor is managed by SPM)
 # vendor/
+
+# Local tooling (not part of the app)
+.claude/
+.omc/
+settings.json
+hooks/
+
+# Release artifacts (distributed via GitHub Releases)
+*.dmg
+
+# Whisper model weights and local build products (download / build separately)
+vendor/whisper.cpp/models/*.bin
+vendor/whisper.cpp/build-macos/
