@@ -72,7 +72,7 @@ git clone --recurse-submodules https://github.com/Jimmy-Chung/SayIt.git
 cd SayIt
 ```
 
-本地 Whisper 需要 `ggml-base.bin` 模型（约 141 MB，不在 Git 中）。下载并编译静态库：
+本地 Whisper 需要 `ggml-base.bin` 模型（约 141 MB，不在 Git 中）。下载并编译静态库后，再生成工程、编译：
 
 ```bash
 bash vendor/whisper.cpp/models/download-ggml-model.sh base
@@ -81,6 +81,47 @@ bash vendor/whisper.cpp/models/download-ggml-model.sh base
 xcodegen generate
 xcodebuild -project SayIt.xcodeproj -scheme SayIt -configuration Debug build
 ```
+
+### 打包安装包
+
+发版时需要分别打出 Apple Silicon 和 Intel 两份 Release，再做成 DMG。产物会出现在项目根目录。
+
+先按芯片编译：
+
+```bash
+# 若改过 project.yml，先重新生成工程
+xcodegen generate
+
+# Intel
+xcodebuild -project SayIt.xcodeproj -scheme SayIt -configuration Release \
+  ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO \
+  CONFIGURATION_BUILD_DIR="$(pwd)/build/x86_64" \
+  clean build
+
+# Apple Silicon
+xcodebuild -project SayIt.xcodeproj -scheme SayIt -configuration Release \
+  ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+  CONFIGURATION_BUILD_DIR="$(pwd)/build/arm64" \
+  clean build
+```
+
+再打包成 DMG（把版本号改成实际要发布的版本）：
+
+```bash
+VERSION="v1.2.0"
+
+hdiutil create -volname "SayIt" \
+  -srcfolder "build/x86_64/SayIt.app" \
+  -ov -format UDZO \
+  "SayIt-${VERSION}-Intel.dmg"
+
+hdiutil create -volname "SayIt" \
+  -srcfolder "build/arm64/SayIt.app" \
+  -ov -format UDZO \
+  "SayIt-${VERSION}-AppleSilicon.dmg"
+```
+
+会得到 `SayIt-v1.2.0-Intel.dmg` 和 `SayIt-v1.2.0-AppleSilicon.dmg`。发版时还需要把设置页里的版本字符串（`Sources/SayIt/Views/SettingsView.swift` 中的 `SayIt v`）改成对应版本。
 
 ## 技术概要
 
